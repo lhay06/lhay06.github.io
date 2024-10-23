@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitch Stats</title>
+    <style>
+        .blue {
+            color: #0C2340;
+        }
+        .red {
+            color: #BD1F2D;
+        }
+        th { 
+            border-bottom: 1px solid gray;
+            cursor: pointer; /* Change cursor to pointer for sortable columns */
+        }
+        th.sorted-asc::after {
+            content: ' ▲'; /* Arrow for ascending sort */
+        }
+        th.sorted-desc::after {
+            content: ' ▼'; /* Arrow for descending sort */
+        }
+        td {
+            text-align: center;
+        }
+        td.left {
+            text-align: left;
+        }
+        a {
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="answers.html">My Answers</a>
+    <h1 class="red">Trackman Pitch Stats Viewer</h1>
+    <form onsubmit="filterData(event);">
+        <label>Starting Date</label>
+        <input type="date" id="startdate" />
+        <label>Ending Date</label>
+        <input type="date" id="enddate" />
+        <button type="submit">Filter</button>
+    </form>
+    <table class="blue" id="data-table">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">PitchNo</th>
+                <th onclick="sortTable(1)">Date</th>
+                <th onclick="sortTable(2)">Time</th>
+                <th onclick="sortTable(3)">Batter</th>
+                <th onclick="sortTable(4)">Balls</th>
+                <th onclick="sortTable(5)">Strikes</th>
+                <th onclick="sortTable(6)">Outs</th>
+                <th onclick="sortTable(7)">PitchCall</th>
+                <th onclick="sortTable(8)">KorBB</th>
+                <th onclick="sortTable(9)">RelSpeed</th>
+                <th onclick="sortTable(10)">SpinRate</th>
+                <th onclick="sortTable(11)">SpinAxis</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+
+    <script>
+        function filterData(event) {
+            event.preventDefault(); // Prevent form submission
+            var startdate = new Date(document.getElementById("startdate").value);
+            var enddate = new Date(document.getElementById("enddate").value);
+            var rows = document.querySelectorAll('#data-table tbody tr');
+
+            rows.forEach(row => {
+                var rowDate = new Date(row.cells[1].innerText);
+                if (rowDate >= startdate && rowDate <= enddate) {
+                    row.style.display = ''; // Show the row
+                } else {
+                    row.style.display = 'none'; // Hide the row
+                }
+            });
+        }
+
+        let currentSort = { index: null, order: 'asc' };
+
+        function sortTable(columnIndex) {
+            const tableBody = document.querySelector('#data-table tbody');
+            const rows = Array.from(tableBody.rows);
+            const isAscending = currentSort.index === columnIndex && currentSort.order === 'asc';
+            currentSort = { index: columnIndex, order: isAscending ? 'desc' : 'asc' };
+
+            rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].innerText;
+                const bText = b.cells[columnIndex].innerText;
+                
+                if (columnIndex === 1) { // Date column
+                    return (new Date(aText) - new Date(bText)) * (isAscending ? -1 : 1);
+                } else {
+                    return (aText.localeCompare(bText)) * (isAscending ? -1 : 1);
+                }
+            });
+
+            // Clear the table body and append sorted rows
+            tableBody.innerHTML = '';
+            rows.forEach(row => tableBody.appendChild(row));
+
+            // Remove sorting indicators from all headers
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            // Add sorting indicator to the current header
+            const currentHeader = document.querySelectorAll('th')[columnIndex];
+            currentHeader.classList.add(isAscending ? 'sorted-desc' : 'sorted-asc');
+        }
+
+        const url = 'https://compute.samford.edu/zohauth/clients/datajson/1';
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tableBody = document.querySelector('#data-table tbody');
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><a href="details.html?id=${item.PitchNo}">Pitch ${item.PitchNo}</a></td>
+                        <td>${item.Date}</td>
+                        <td>${item.Time}</td>
+                        <td>${item.Batter}</td>
+                        <td>${item.Balls}</td>
+                        <td>${item.Strikes}</td>
+                        <td>${item.Outs}</td>
+                        <td>${item.PitchCall}</td>
+                        <td>${item.KorBB}</td>
+                        <td>${item.RelSpeed}</td>
+                        <td>${item.SpinRate}</td>
+                        <td>${item.SpinAxis}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+    </script>
+</body>
+</html>
