@@ -184,3 +184,53 @@
 
             arr.forEach(value => {
                 frequency[value] = (frequency[value] || 0) + 1;
+                if (frequency[value] > maxFreq) {
+                    maxFreq = frequency[value];
+                }
+            });
+
+            for (const key in frequency) {
+                if (frequency[key] === maxFreq) {
+                    modes.push(Number(key));
+                }
+            }
+
+            return modes.length === arr.length ? [] : modes; // Return empty if all values are the same
+        }
+
+        const url = 'https://compute.samford.edu/zohauth/clients/datajson/1';
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tableBody = document.querySelector('#data-table tbody');
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><a href="details.html?id=${item.PitchNo}">Pitch ${item.PitchNo}</a></td>
+                        <td>${item.Date}</td>
+                        <td>${item.Time}</td>
+                        <td>${item.Batter}</td>
+                        <td>${item.Balls}</td>
+                        <td>${item.Strikes}</td>
+                        <td>${item.Outs}</td>
+                        <td>${item.PitchCall}</td>
+                        <td>${item.KorBB}</td>
+                        <td>${item.RelSpeed}</td>
+                        <td>${item.SpinRate}</td>
+                        <td>${item.SpinAxis}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                calculateStatistics(); // Calculate statistics after loading data
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+    </script>
+</body>
+</html>
