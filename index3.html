@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitch Stats</title>
+    <style>
+        .blue {
+            color: #0C2340;
+        }
+        .red {
+            color: #BD1F2D;
+        }
+        th { 
+            border-bottom: 1px solid gray;
+            cursor: pointer; /* Change cursor to pointer for sortable columns */
+        }
+        th.sorted-asc::after {
+            content: ' ▲'; /* Arrow for ascending sort */
+        }
+        th.sorted-desc::after {
+            content: ' ▼'; /* Arrow for descending sort */
+        }
+        td {
+            text-align: center;
+        }
+        td.left {
+            text-align: left;
+        }
+        a {
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        #statistics {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <a href="answers.html">My Answers</a>
+    <h1 class="red">Trackman Pitch Stats Viewer</h1>
+    <form onsubmit="filterData(event);">
+        <label>Starting Date</label>
+        <input type="date" id="startdate" />
+        <label>Ending Date</label>
+        <input type="date" id="enddate" />
+        <button type="submit">Filter</button>
+    </form>
+    <table class="blue" id="data-table">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">PitchNo</th>
+                <th onclick="sortTable(1)">Date</th>
+                <th onclick="sortTable(2)">Time</th>
+                <th onclick="sortTable(3)">Batter</th>
+                <th onclick="sortTable(4)">Balls</th>
+                <th onclick="sortTable(5)">Strikes</th>
+                <th onclick="sortTable(6)">Outs</th>
+                <th onclick="sortTable(7)">PitchCall</th>
+                <th onclick="sortTable(8)">KorBB</th>
+                <th onclick="sortTable(9)">RelSpeed</th>
+                <th onclick="sortTable(10)">SpinRate</th>
+                <th onclick="sortTable(11)">SpinAxis</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+
+    <div id="statistics">
+        <h2>Statistics</h2>
+        <p><strong>Balls:</strong> <span id="mean-balls">Mean: </span>, <span id="median-balls">Median: </span>, <span id="mode-balls">Mode: </span></p>
+        <p><strong>Strikes:</strong> <span id="mean-strikes">Mean: </span>, <span id="median-strikes">Median: </span>, <span id="mode-strikes">Mode: </span></p>
+        <p><strong>Outs:</strong> <span id="mean-outs">Mean: </span>, <span id="median-outs">Median: </span>, <span id="mode-outs">Mode: </span></p>
+        <p><strong>RelSpeed:</strong> <span id="mean-relspeed">Mean: </span>, <span id="median-relspeed">Median: </span>, <span id="mode-relspeed">Mode: </span></p>
+        <p><strong>SpinRate:</strong> <span id="mean-spinrate">Mean: </span>, <span id="median-spinrate">Median: </span>, <span id="mode-spinrate">Mode: </span></p>
+    </div>
+
+    <script>
+        function filterData(event) {
+            event.preventDefault(); // Prevent form submission
+            var startdate = new Date(document.getElementById("startdate").value);
+            var enddate = new Date(document.getElementById("enddate").value);
+            var rows = document.querySelectorAll('#data-table tbody tr');
+
+            rows.forEach(row => {
+                var rowDate = new Date(row.cells[1].innerText);
+                if (rowDate >= startdate && rowDate <= enddate) {
+                    row.style.display = ''; // Show the row
+                } else {
+                    row.style.display = 'none'; // Hide the row
+                }
+            });
+
+            calculateStatistics(); // Recalculate statistics after filtering
+        }
+
+        let currentSort = { index: null, order: 'asc' };
+
+        function sortTable(columnIndex) {
+            const tableBody = document.querySelector('#data-table tbody');
+            const rows = Array.from(tableBody.rows);
+            const isAscending = currentSort.index === columnIndex && currentSort.order === 'asc';
+            currentSort = { index: columnIndex, order: isAscending ? 'desc' : 'asc' };
+
+            rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].innerText;
+                const bText = b.cells[columnIndex].innerText;
+
+                if (columnIndex === 1) { // Date column
+                    return (new Date(aText) - new Date(bText)) * (isAscending ? -1 : 1);
+                } else {
+                    return (aText.localeCompare(bText)) * (isAscending ? -1 : 1);
+                }
+            });
+
+            // Clear the table body and append sorted rows
+            tableBody.innerHTML = '';
+            rows.forEach(row => tableBody.appendChild(row));
+
+            // Remove sorting indicators from all headers
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            // Add sorting indicator to the current header
+            const currentHeader = document.querySelectorAll('th')[columnIndex];
+            currentHeader.classList.add(isAscending ? 'sorted-desc' : 'sorted-asc');
+
+            calculateStatistics(); // Recalculate statistics after sorting
+        }
+
+        function calculateStatistics() {
+            const tableBody = document.querySelector('#data-table tbody');
+            const rows = Array.from(tableBody.rows).filter(row => row.style.display !== 'none');
+
+            const balls = [], strikes = [], outs = [], relSpeed = [], spinRate = [];
+
+            rows.forEach(row => {
+                balls.push(parseFloat(row.cells[4].innerText));
+                strikes.push(parseFloat(row.cells[5].innerText));
+                outs.push(parseFloat(row.cells[6].innerText));
+                relSpeed.push(parseFloat(row.cells[9].innerText));
+                spinRate.push(parseFloat(row.cells[10].innerText));
+            });
+
+            document.getElementById('mean-balls').innerText = `Mean: ${mean(balls).toFixed(2)}`;
+            document.getElementById('median-balls').innerText = `Median: ${median(balls).toFixed(2)}`;
+            document.getElementById('mode-balls').innerText = `Mode: ${mode(balls).join(', ')}`;
+
+            document.getElementById('mean-strikes').innerText = `Mean: ${mean(strikes).toFixed(2)}`;
+            document.getElementById('median-strikes').innerText = `Median: ${median(strikes).toFixed(2)}`;
+            document.getElementById('mode-strikes').innerText = `Mode: ${mode(strikes).join(', ')}`;
+
+            document.getElementById('mean-outs').innerText = `Mean: ${mean(outs).toFixed(2)}`;
+            document.getElementById('median-outs').innerText = `Median: ${median(outs).toFixed(2)}`;
+            document.getElementById('mode-outs').innerText = `Mode: ${mode(outs).join(', ')}`;
+
+            document.getElementById('mean-relspeed').innerText = `Mean: ${mean(relSpeed).toFixed(2)}`;
+            document.getElementById('median-relspeed').innerText = `Median: ${median(relSpeed).toFixed(2)}`;
+            document.getElementById('mode-relspeed').innerText = `Mode: ${mode(relSpeed).join(', ')}`;
+
+            document.getElementById('mean-spinrate').innerText = `Mean: ${mean(spinRate).toFixed(2)}`;
+            document.getElementById('median-spinrate').innerText = `Median: ${median(spinRate).toFixed(2)}`;
+            document.getElementById('mode-spinrate').innerText = `Mode: ${mode(spinRate).join(', ')}`;
+        }
+
+        function mean(arr) {
+            return arr.reduce((sum, value) => sum + value, 0) / arr.length;
+        }
+
+        function median(arr) {
+            const sorted = arr.slice().sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+
+        function mode(arr) {
+            const frequency = {};
+            let maxFreq = 0;
+            let modes = [];
+
+            arr.forEach(value => {
+                frequency[value] = (frequency[value] || 0) + 1;
